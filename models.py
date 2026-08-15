@@ -72,10 +72,16 @@ class Order(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
     stars_amount: Mapped[int] = mapped_column(Integer)
     price_stars: Mapped[int] = mapped_column(Integer)
+
     status: Mapped[OrderStatus] = mapped_column(
-        default=OrderStatus.pending,
+        String(20),
+        default=OrderStatus.pending.value,
     )
-    promo_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    promo_code: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
     telegram_payment_charge_id: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
