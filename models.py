@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass, field
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -10,7 +11,7 @@ load_dotenv()
 def _get_env(
     name: str,
     required: bool = True,
-    default: str | None = None,
+    default: Optional[str] = None,
 ) -> str:
     value = os.getenv(name, default)
 
@@ -25,52 +26,34 @@ def _get_env(
 
 @dataclass(frozen=True)
 class Settings:
-    # =========================
     # DATABASE
-    # =========================
-
     database_url: str = field(
         default_factory=lambda: _get_env("DATABASE_URL")
     )
 
-    # =========================
     # INTERNAL API
-    # =========================
-
     internal_secret: str = field(
         default_factory=lambda: _get_env("API_INTERNAL_SECRET")
     )
 
-    # =========================
     # ADMIN PANEL
-    # =========================
-
     admin_panel_password: str = field(
         default_factory=lambda: _get_env("ADMIN_PANEL_PASSWORD")
     )
 
-    # =========================
-    # TELEGRAM
-    # =========================
-
+    # TELEGRAM BOT
     bot_token: str = field(
         default_factory=lambda: _get_env("BOT_TOKEN")
     )
 
-    # =========================
     # REFERRAL
-    # =========================
-
     referral_bonus_stars: int = field(
         default_factory=lambda: int(
             os.getenv("REFERRAL_BONUS_STARS", "0")
         )
     )
 
-    # =========================
     # CORS
-    # =========================
-
     frontend_origin: str = field(
         default_factory=lambda: _get_env(
             "FRONTEND_ORIGIN",
@@ -87,21 +70,14 @@ class Settings:
         )
     )
 
-    # =========================
     # SERVER
-    # =========================
-
     port: int = field(
         default_factory=lambda: int(
             os.getenv("PORT", "8000")
         )
     )
 
-    # =========================
     # CLICK
-    # =========================
-
-    # Click Business tomonidan beriladi
     click_service_id: str = field(
         default_factory=lambda: _get_env(
             "CLICK_SERVICE_ID",
@@ -110,7 +86,6 @@ class Settings:
         )
     )
 
-    # Click Merchant ID
     click_merchant_id: str = field(
         default_factory=lambda: _get_env(
             "CLICK_MERCHANT_ID",
@@ -119,8 +94,6 @@ class Settings:
         )
     )
 
-    # Click SECRET KEY
-    # MUHIM: bu qiymatni frontendga chiqarmang!
     click_secret_key: str = field(
         default_factory=lambda: _get_env(
             "CLICK_SECRET_KEY",
