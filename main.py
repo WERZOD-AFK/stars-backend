@@ -19,14 +19,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    # Eslatma: production'da jadvallarni Alembic migratsiyalari
-    # orqali boshqarish tavsiya etiladi.
-    # Hozircha loyiha ishga tushishi uchun create_all ishlatilmoqda.
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     logger.info("Database jadvallari tayyor")
-
     yield
 
 
@@ -61,7 +57,6 @@ app.add_middleware(
 )
 
 
-# Routers
 app.include_router(users.router)
 app.include_router(products.router)
 app.include_router(orders.router)
