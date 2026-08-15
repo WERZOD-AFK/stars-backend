@@ -45,6 +45,9 @@ class Product(Base):
     stars_amount: Mapped[int] = mapped_column(Integer, nullable=False)
     # Telegram invoyisida so'raladigan narx (Stars birligida, XTR)
     price_stars: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Click/Payme orqali so'lib to'lash uchun narx (so'mda). Bo'sh bo'lsa,
+    # bu paket faqat Stars orqali sotiladi.
+    price_uzs: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     is_popular: Mapped[bool] = mapped_column(default=False, nullable=False)
@@ -74,6 +77,12 @@ class Order(Base):
 
     stars_amount: Mapped[int] = mapped_column(Integer, nullable=False)
     price_stars: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Click/Payme uchun narx (so'mda)
+    price_uzs: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # "stars" yoki "click" — qaysi usul bilan to'langan/to'lanmoqda
+    payment_provider: Mapped[str] = mapped_column(String(20), default="stars", nullable=False)
+    # Click tranzaksiya ID'si (Prepare bosqichida saqlanadi)
+    click_trans_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     promo_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     status: Mapped[OrderStatus] = mapped_column(
