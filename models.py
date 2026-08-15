@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -18,15 +18,25 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    tg_user_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
+
+    # Telegram ID 32-bit Integerga sig'maydi
+    tg_user_id: Mapped[int] = mapped_column(
+        # BIGINT o'rniga PostgreSQL'da String ishlatamiz
+        String(30),
+        unique=True,
+        index=True,
+    )
+
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(255))
     bonus_balance: Mapped[int] = mapped_column(Integer, default=0)
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+
     referred_by_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"),
         nullable=True,
     )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -43,6 +53,7 @@ class Product(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_popular: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -58,6 +69,7 @@ class PromoCode(Base):
     max_uses: Mapped[int] = mapped_column(Integer)
     used_count: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -73,7 +85,8 @@ class Order(Base):
     stars_amount: Mapped[int] = mapped_column(Integer)
     price_stars: Mapped[int] = mapped_column(Integer)
 
-    status: Mapped[OrderStatus] = mapped_column(
+    # PostgreSQL ENUM xatosini oldini olish uchun String ishlatamiz
+    status: Mapped[str] = mapped_column(
         String(20),
         default=OrderStatus.pending.value,
     )
@@ -82,14 +95,17 @@ class Order(Base):
         String(100),
         nullable=True,
     )
+
     telegram_payment_charge_id: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
     )
+
     paid_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -104,6 +120,7 @@ class SupportTicket(Base):
     message: Mapped[str] = mapped_column(Text)
     answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_answered: Mapped[bool] = mapped_column(Boolean, default=False)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -116,6 +133,7 @@ class AdminLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     action: Mapped[str] = mapped_column(String(255))
     details: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
