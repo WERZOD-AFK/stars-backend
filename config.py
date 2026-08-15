@@ -39,5 +39,11 @@ class Settings:
 
     port: int = field(default_factory=lambda: int(os.getenv("PORT", "8000")))
 
+    # Click.uz to'lov integratsiyasi (hozircha bo'sh qoldirilsa ham ilova ishlayveradi,
+    # faqat /api/click/* endpointlar Click'dan haqiqiy so'rov kelganda ishlatiladi)
+    click_service_id: str = field(default_factory=lambda: _get_env("CLICK_SERVICE_ID", required=False, default=""))
+    click_merchant_id: str = field(default_factory=lambda: _get_env("CLICK_MERCHANT_ID", required=False, default=""))
+    click_secret_key: str = field(default_factory=lambda: _get_env("CLICK_SECRET_KEY", required=False, default=""))
+
 
 settings = Settings()
