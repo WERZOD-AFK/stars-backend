@@ -1,106 +1,116 @@
-import os
-from dataclasses import dataclass, field
-from typing import Optional
+from datetime import datetime, timezone
+from enum import Enum
 
-from dotenv import load_dotenv
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
-
-load_dotenv()
-
-
-def _get_env(
-    name: str,
-    required: bool = True,
-    default: Optional[str] = None,
-) -> str:
-    value = os.getenv(name, default)
-
-    if required and not value:
-        raise RuntimeError(
-            f"Environment variable '{name}' o'rnatilmagan "
-            "(.env faylini tekshiring)"
-        )
-
-    return value
+from database import Base
 
 
-@dataclass(frozen=True)
-class Settings:
-    # DATABASE
-    database_url: str = field(
-        default_factory=lambda: _get_env("DATABASE_URL")
+class OrderStatus(str, Enum):
+    pending = "pending"
+    paid = "paid"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tg_user_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    full_name: Mapped[str] = mapped_column(String(255))
+    bonus_balance: Mapped[int] = mapped_column(Integer, default=0)
+    is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    referred_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True,
     )
-
-    # INTERNAL API
-    internal_secret: str = field(
-        default_factory=lambda: _get_env("API_INTERNAL_SECRET")
-    )
-
-    # ADMIN PANEL
-    admin_panel_password: str = field(
-        default_factory=lambda: _get_env("ADMIN_PANEL_PASSWORD")
-    )
-
-    # TELEGRAM BOT
-    bot_token: str = field(
-        default_factory=lambda: _get_env("BOT_TOKEN")
-    )
-
-    # REFERRAL
-    referral_bonus_stars: int = field(
-        default_factory=lambda: int(
-            os.getenv("REFERRAL_BONUS_STARS", "0")
-        )
-    )
-
-    # CORS
-    frontend_origin: str = field(
-        default_factory=lambda: _get_env(
-            "FRONTEND_ORIGIN",
-            required=False,
-            default="*",
-        )
-    )
-
-    admin_panel_origin: str = field(
-        default_factory=lambda: _get_env(
-            "ADMIN_PANEL_ORIGIN",
-            required=False,
-            default="*",
-        )
-    )
-
-    # SERVER
-    port: int = field(
-        default_factory=lambda: int(
-            os.getenv("PORT", "8000")
-        )
-    )
-
-    # CLICK
-    click_service_id: str = field(
-        default_factory=lambda: _get_env(
-            "CLICK_SERVICE_ID",
-            required=False,
-            default="",
-        )
-    )
-
-    click_merchant_id: str = field(
-        default_factory=lambda: _get_env(
-            "CLICK_MERCHANT_ID",
-            required=False,
-            default="",
-        )
-    )
-
-    click_secret_key: str = field(
-        default_factory=lambda: _get_env(
-            "CLICK_SECRET_KEY",
-            required=False,
-            default="",
-        )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
     )
 
 
-settings = Settings()
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    stars_amount: Mapped[int] = mapped_column(Integer)
+    price_stars: Mapped[int] = mapped_column(Integer)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_popular: Mapped[bool] = mapped_column(Boolean, default=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class PromoCode(Base):
+    __tablename__ = "promo_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    discount_percent: Mapped[int] = mapped_column(Integer)
+    max_uses: Mapped[int] = mapped_column(Integer)
+    used_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
+    stars_amount: Mapped[int] = mapped_column(Integer)
+    price_stars: Mapped[int] = mapped_column(Integer)
+    status: Mapped[OrderStatus] = mapped_column(
+        default=OrderStatus.pending,
+    )
+    promo_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    telegram_payment_charge_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    paid_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    message: Mapped[str] = mapped_column(Text)
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_answered: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class AdminLog(Base):
+    __tablename__ = "admin_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    action: Mapped[str] = mapped_column(String(255))
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
