@@ -1,120 +1,133 @@
-import enum
-from datetime import datetime
+import os
+from dataclasses import dataclass, field
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from database import Base
+from dotenv import load_dotenv
 
 
-class OrderStatus(str, enum.Enum):
-    pending = "pending"
-    paid = "paid"
-    processing = "processing"
-    completed = "completed"
-    cancelled = "cancelled"
+load_dotenv()
 
 
-class User(Base):
-    __tablename__ = "users"
+def _get_env(
+    name: str,
+    required: bool = True,
+    default: str | None = None,
+) -> str:
+    value = os.getenv(name, default)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    tg_user_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True, nullable=False)
-    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    if required and not value:
+        raise RuntimeError(
+            f"Environment variable '{name}' o'rnatilmagan "
+            "(.env faylini tekshiring)"
+        )
 
-    referred_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    referred_by: Mapped["User | None"] = relationship(remote_side="User.id")
-
-    bonus_balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    is_blocked: Mapped[bool] = mapped_column(default=False, nullable=False)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    orders: Mapped[list["Order"]] = relationship(back_populates="user")
+    return value
 
 
-class Product(Base):
-    """Sotiladigan Stars paketi."""
-    __tablename__ = "products"
+@dataclass(frozen=True)
+class Settings:
+    # =========================
+    # DATABASE
+    # =========================
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-
-    # Foydalanuvchiga yetkaziladigan Stars miqdori
-    stars_amount: Mapped[int] = mapped_column(Integer, nullable=False)
-    # Telegram invoyisida so'raladigan narx (Stars birligida, XTR)
-    price_stars: Mapped[int] = mapped_column(Integer, nullable=False)
-    # Click/Payme orqali so'lib to'lash uchun narx (so'mda). Bo'sh bo'lsa,
-    # bu paket faqat Stars orqali sotiladi.
-    price_uzs: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
-    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    is_popular: Mapped[bool] = mapped_column(default=False, nullable=False)
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class PromoCode(Base):
-    __tablename__ = "promo_codes"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
-    discount_percent: Mapped[int] = mapped_column(Integer, nullable=False)
-    max_uses: Mapped[int] = mapped_column(Integer, nullable=False)
-    used_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class Order(Base):
-    __tablename__ = "orders"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False)
-
-    stars_amount: Mapped[int] = mapped_column(Integer, nullable=False)
-    price_stars: Mapped[int] = mapped_column(Integer, nullable=False)
-    # Click/Payme uchun narx (so'mda)
-    price_uzs: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    # "stars" yoki "click" — qaysi usul bilan to'langan/to'lanmoqda
-    payment_provider: Mapped[str] = mapped_column(String(20), default="stars", nullable=False)
-    # Click tranzaksiya ID'si (Prepare bosqichida saqlanadi)
-    click_trans_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-
-    promo_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    status: Mapped[OrderStatus] = mapped_column(
-        Enum(OrderStatus, name="order_status"), default=OrderStatus.pending, nullable=False
+    database_url: str = field(
+        default_factory=lambda: _get_env("DATABASE_URL")
     )
-    telegram_payment_charge_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # =========================
+    # INTERNAL API
+    # =========================
 
-    user: Mapped["User"] = relationship(back_populates="orders")
-    product: Mapped["Product"] = relationship()
+    internal_secret: str = field(
+        default_factory=lambda: _get_env("API_INTERNAL_SECRET")
+    )
+
+    # =========================
+    # ADMIN PANEL
+    # =========================
+
+    admin_panel_password: str = field(
+        default_factory=lambda: _get_env("ADMIN_PANEL_PASSWORD")
+    )
+
+    # =========================
+    # TELEGRAM
+    # =========================
+
+    bot_token: str = field(
+        default_factory=lambda: _get_env("BOT_TOKEN")
+    )
+
+    # =========================
+    # REFERRAL
+    # =========================
+
+    referral_bonus_stars: int = field(
+        default_factory=lambda: int(
+            os.getenv("REFERRAL_BONUS_STARS", "0")
+        )
+    )
+
+    # =========================
+    # CORS
+    # =========================
+
+    frontend_origin: str = field(
+        default_factory=lambda: _get_env(
+            "FRONTEND_ORIGIN",
+            required=False,
+            default="*",
+        )
+    )
+
+    admin_panel_origin: str = field(
+        default_factory=lambda: _get_env(
+            "ADMIN_PANEL_ORIGIN",
+            required=False,
+            default="*",
+        )
+    )
+
+    # =========================
+    # SERVER
+    # =========================
+
+    port: int = field(
+        default_factory=lambda: int(
+            os.getenv("PORT", "8000")
+        )
+    )
+
+    # =========================
+    # CLICK
+    # =========================
+
+    # Click Business tomonidan beriladi
+    click_service_id: str = field(
+        default_factory=lambda: _get_env(
+            "CLICK_SERVICE_ID",
+            required=False,
+            default="",
+        )
+    )
+
+    # Click Merchant ID
+    click_merchant_id: str = field(
+        default_factory=lambda: _get_env(
+            "CLICK_MERCHANT_ID",
+            required=False,
+            default="",
+        )
+    )
+
+    # Click SECRET KEY
+    # MUHIM: bu qiymatni frontendga chiqarmang!
+    click_secret_key: str = field(
+        default_factory=lambda: _get_env(
+            "CLICK_SECRET_KEY",
+            required=False,
+            default="",
+        )
+    )
 
 
-class SupportTicket(Base):
-    __tablename__ = "support_tickets"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
-    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_answered: Mapped[bool] = mapped_column(default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    user: Mapped["User"] = relationship()
-
-
-class AdminLog(Base):
-    """Audit log — admin harakatlarini yozib boradi."""
-    __tablename__ = "admin_logs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    action: Mapped[str] = mapped_column(String(255), nullable=False)
-    details: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+settings = Settings()
