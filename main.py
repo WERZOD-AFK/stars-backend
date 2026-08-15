@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import Base, engine
-from routers import admin, orders, products, public, support, users
+from routers import admin, click, orders, products, public, support, users
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ app.include_router(orders.router)
 app.include_router(support.router)
 app.include_router(admin.router)
 app.include_router(public.router)
+app.include_router(click.router)
 
 
 @app.get("/health")
