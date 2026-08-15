@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, BigInteger, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,9 +22,10 @@ class User(Base):
 
     # Telegram ID 32-bit Integer'dan katta bo'lishi mumkin
     tg_user_id: Mapped[int] = mapped_column(
-        Integer,
+        BigInteger,
         unique=True,
         index=True,
+        nullable=False,
     )
 
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -86,7 +87,6 @@ class Order(Base):
     stars_amount: Mapped[int] = mapped_column(Integer)
     price_stars: Mapped[int] = mapped_column(Integer)
 
-    # MUHIM: PostgreSQL enum bilan Python enum bir xil qiymat ishlatadi
     status: Mapped[OrderStatus] = mapped_column(
         SAEnum(
             OrderStatus,
